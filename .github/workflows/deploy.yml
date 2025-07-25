@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: "ECR Image Tag (e.g., latest or short SHA like abc1234)"
+        description: "ECR Image Tag"
         required: true
         type: string
 
