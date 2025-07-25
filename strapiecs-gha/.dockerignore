@@ -1,0 +1,27 @@
+# Node modules - will be rebuilt inside Docker
+node_modules
+.cache
+build
+dist
+
+# Logs
+*.log
+npm-debug.log*
+
+# Local environment files
+.env
+.env.* 
+
+# OS and editor metadata
+.DS_Store
+.vscode
+.idea
+
+# Git
+.git
+.gitignore
+
+# Docker files
+docker-compose.yml
+Dockerfile
+.dockerignore
