@@ -23,8 +23,3 @@ variable "db_name" {
   description = "RDS database name"
   default     = "strapi"
 }
-
-variable "image_url" {
-  description = "The full ECR image URL with tag"
-  type        = string
-}

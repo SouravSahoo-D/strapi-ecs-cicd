@@ -31,13 +31,13 @@ jobs:
         with:
           terraform_version: 1.8.4
 
+      - name: Setup Terraform Credentials
+        run: |
+          mkdir -p ~/.terraform.d
+          echo '{"credentials": {"app.terraform.io": {"token": "${{ secrets.TF_API_TOKEN }}"}}}' > ~/.terraform.d/credentials.tfrc.json
+
       - name: Terraform Init (Remote Backend)
         run: terraform init
-        env:
-          TF_CLOUD_TOKEN: ${{ secrets.TF_API_TOKEN }}
 
       - name: Terraform Destroy
-        run: terraform destroy -auto-approve \
-          -var="db_username=${{ secrets.DB_USERNAME }}" \
-          -var="db_password=${{ secrets.DB_PASSWORD }}" \
-          -var="db_name=${{ secrets.DB_NAME }}"
+        run: terraform destroy -auto-approve

@@ -2,11 +2,6 @@ name: Deploy to ECS
 
 on:
   workflow_dispatch:
-    inputs:
-      image_tag:
-        description: "ECR Image Tag"
-        required: true
-        type: string
 
 env:
   AWS_REGION: us-east-2
@@ -50,10 +45,8 @@ jobs:
 
       - name: Terraform Plan
         run: |
-          IMAGE_URL=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.event.inputs.image_tag }}
-          terraform plan -var="image_url=$IMAGE_URL" -var="db_password=${{ secrets.DB_PASSWORD }}"
+          terraform plan
 
       - name: Terraform Apply
         run: |
-          IMAGE_URL=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.event.inputs.image_tag }}
-          terraform apply -auto-approve -var="image_url=$IMAGE_URL" -var="db_password=${{ secrets.DB_PASSWORD }}"
+          terraform apply -auto-approve
