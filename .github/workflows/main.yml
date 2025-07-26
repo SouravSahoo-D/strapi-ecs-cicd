@@ -1,0 +1,13 @@
+name: Show AWS Keys (TEMPORARY)
+
+on:
+  workflow_dispatch:  # Trigger manually
+
+jobs:
+  debug-keys:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Echo AWS credentials
+        run: |
+          echo "AWS Access Key ID: ${{ secrets.AWS_ACCESS_KEY_ID }}"
+          echo "AWS Secret Access Key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}"
