@@ -15,7 +15,7 @@ resource "aws_cloudwatch_dashboard" "strapi_dashboard" {
           ],
           period      = 300,
           stat        = "Average",
-          title       = "Strapi ECS CPU",
+          title       = "ECS CPU Utilization",
           region      = var.region,
           annotations = {}
         }
@@ -32,7 +32,58 @@ resource "aws_cloudwatch_dashboard" "strapi_dashboard" {
           ],
           period      = 300,
           stat        = "Average",
-          title       = "Strapi ECS Memory",
+          title       = "ECS Memory Utilization",
+          region      = var.region,
+          annotations = {}
+        }
+      },
+      {
+        type = "metric",
+        x = 0,
+        y = 12,
+        width = 12,
+        height = 6,
+        properties = {
+          metrics = [
+            [ "ECS/ContainerInsights", "RunningTaskCount", "ClusterName", aws_ecs_cluster.strapi_cluster.name, "ServiceName", aws_ecs_service.strapi_service.name ]
+          ],
+          period      = 300,
+          stat        = "Average",
+          title       = "ECS Running Task Count",
+          region      = var.region,
+          annotations = {}
+        }
+      },
+      {
+        type = "metric",
+        x = 0,
+        y = 18,
+        width = 12,
+        height = 6,
+        properties = {
+          metrics = [
+            [ "AWS/ECS", "NetworkBytesIn", "ClusterName", aws_ecs_cluster.strapi_cluster.name, "ServiceName", aws_ecs_service.strapi_service.name ],
+          ],
+          period      = 300,
+          stat        = "Average",
+          title       = "Network In (Bytes)",
+          region      = var.region,
+          annotations = {}
+        }
+      },
+      {
+        type = "metric",
+        x = 0,
+        y = 24,
+        width = 12,
+        height = 6,
+        properties = {
+          metrics = [
+            [ "AWS/ECS", "NetworkBytesOut", "ClusterName", aws_ecs_cluster.strapi_cluster.name, "ServiceName", aws_ecs_service.strapi_service.name ],
+          ],
+          period      = 300,
+          stat        = "Average",
+          title       = "Network Out (Bytes)",
           region      = var.region,
           annotations = {}
         }
