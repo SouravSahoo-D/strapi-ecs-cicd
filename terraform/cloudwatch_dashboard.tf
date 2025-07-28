@@ -62,10 +62,10 @@ resource "aws_cloudwatch_dashboard" "strapi_dashboard" {
         height = 6,
         properties = {
           metrics = [
-            [ "AWS/ECS", "NetworkBytesIn", "ClusterName", aws_ecs_cluster.strapi_cluster.name, "ServiceName", aws_ecs_service.strapi_service.name ],
+            [ "ECS/ContainerInsights", "NetworkRxBytes", "ClusterName", aws_ecs_cluster.strapi_cluster.name, "ServiceName", aws_ecs_service.strapi_service.name ]
           ],
           period      = 300,
-          stat        = "Average",
+          stat        = "Sum",
           title       = "Network In (Bytes)",
           region      = var.region,
           annotations = {}
@@ -79,10 +79,10 @@ resource "aws_cloudwatch_dashboard" "strapi_dashboard" {
         height = 6,
         properties = {
           metrics = [
-            [ "AWS/ECS", "NetworkBytesOut", "ClusterName", aws_ecs_cluster.strapi_cluster.name, "ServiceName", aws_ecs_service.strapi_service.name ],
+            [ "ECS/ContainerInsights", "NetworkTxBytes", "ClusterName", aws_ecs_cluster.strapi_cluster.name, "ServiceName", aws_ecs_service.strapi_service.name ]
           ],
           period      = 300,
-          stat        = "Average",
+          stat        = "Sum",
           title       = "Network Out (Bytes)",
           region      = var.region,
           annotations = {}
