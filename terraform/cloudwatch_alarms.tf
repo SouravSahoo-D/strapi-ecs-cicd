@@ -31,3 +31,37 @@ resource "aws_cloudwatch_metric_alarm" "high_memory" {
   }
   treat_missing_data = "missing"
 }
+
+resource "aws_cloudwatch_metric_alarm" "unhealthy_tasks" {
+  alarm_name          = "Strapi-Unhealthy-Targets"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "UnHealthyHostCount"
+  namespace           = "AWS/ApplicationELB"
+  period              = 60
+  statistic           = "Average"
+  threshold           = 0
+  alarm_description   = "Triggered when ALB reports unhealthy ECS targets"
+  dimensions = {
+    LoadBalancer = "app/srs-strapi-alb/716eef04c36663b1"
+    TargetGroup  = "targetgroup/srs-strapi-tg/6ec957a10683f96d"
+  }
+  treat_missing_data = "notBreaching"
+}
+
+resource "aws_cloudwatch_metric_alarm" "alb_latency_high" {
+  alarm_name          = "Strapi-ALB-High-Latency"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "TargetResponseTime"
+  namespace           = "AWS/ApplicationELB"
+  period              = 60
+  statistic           = "Average"
+  threshold           = 1.5 # seconds
+  alarm_description   = "ALB Target response time > 1.5 seconds"
+  dimensions = {
+    LoadBalancer = "app/srs-strapi-alb/716eef04c36663b1"
+    TargetGroup  = "targetgroup/srs-strapi-tg/6ec957a10683f96d"
+  }
+  treat_missing_data = "notBreaching"
+}
