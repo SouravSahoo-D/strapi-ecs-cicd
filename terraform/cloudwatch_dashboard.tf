@@ -13,9 +13,11 @@ resource "aws_cloudwatch_dashboard" "strapi_dashboard" {
           metrics = [
             [ "AWS/ECS", "CPUUtilization", "ClusterName", aws_ecs_cluster.strapi_cluster.name, "ServiceName", aws_ecs_service.strapi_service.name ]
           ],
-          period = 300,
-          stat   = "Average",
-          title  = "Strapi ECS CPU"
+          period      = 300,
+          stat        = "Average",
+          title       = "Strapi ECS CPU",
+          region      = var.region,
+          annotations = {}
         }
       },
       {
@@ -28,9 +30,11 @@ resource "aws_cloudwatch_dashboard" "strapi_dashboard" {
           metrics = [
             [ "AWS/ECS", "MemoryUtilization", "ClusterName", aws_ecs_cluster.strapi_cluster.name, "ServiceName", aws_ecs_service.strapi_service.name ]
           ],
-          period = 300,
-          stat   = "Average",
-          title  = "Strapi ECS Memory"
+          period      = 300,
+          stat        = "Average",
+          title       = "Strapi ECS Memory",
+          region      = var.region,
+          annotations = {}
         }
       }
     ]
