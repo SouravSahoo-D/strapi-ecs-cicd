@@ -25,6 +25,10 @@ data "aws_availability_zones" "available" {
 # ECS Cluster
 resource "aws_ecs_cluster" "strapi_cluster" {
   name = "srs-strapi-cluster"
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
 }
 
 resource "aws_cloudwatch_log_group" "ecs_logs" {
