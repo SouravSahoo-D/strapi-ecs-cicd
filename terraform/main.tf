@@ -50,8 +50,8 @@ resource "aws_cloudwatch_log_group" "ecs_logs" {
 resource "aws_ecs_task_definition" "strapi_task" {
   family                   = "srs-strapi-task"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = "512"
-  memory                   = "1024"
+  cpu                      = "256"
+  memory                   = "512"
   network_mode             = "awsvpc"
   execution_role_arn       = var.ecs_task_execution_role_arn
   task_role_arn            = var.ecs_task_execution_role_arn
