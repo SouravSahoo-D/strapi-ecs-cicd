@@ -31,6 +31,17 @@ resource "aws_ecs_cluster" "strapi_cluster" {
   }
 }
 
+resource "aws_ecs_cluster_capacity_providers" "strapi_cp_srs" {
+  cluster_name = aws_ecs_cluster.strapi_cluster.name
+
+  capacity_providers = ["FARGATE_SPOT"]
+
+  default_capacity_provider_strategy {
+    capacity_provider = "FARGATE_SPOT"
+    weight            = 1
+  }
+}
+
 resource "aws_cloudwatch_log_group" "ecs_logs" {
   name              = "/ecs/srs-strapi-task"
   retention_in_days = 7
@@ -228,7 +239,11 @@ resource "aws_ecs_service" "strapi_service" {
   cluster         = aws_ecs_cluster.strapi_cluster.id
   task_definition = aws_ecs_task_definition.strapi_task.arn
   desired_count   = 1
-  launch_type     = "FARGATE"
+  
+  capacity_provider_strategy {
+  capacity_provider = "FARGATE_SPOT"
+  weight            = 1
+}
 
   network_configuration {
     subnets = [
