@@ -261,7 +261,10 @@ resource "aws_ecs_service" "strapi_service" {
     container_port   = 1337
   }
 
-  depends_on = [aws_lb_listener.listener]
+  depends_on = [
+    aws_lb_listener.listener,
+    aws_ecs_cluster_capacity_providers.strapi_cp_srs
+  ]
 }
 
 # Create RDS subnet group
