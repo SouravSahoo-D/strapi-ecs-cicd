@@ -62,9 +62,8 @@ jobs:
           echo "TASK_DEF_ARN=$TASK_ARN" >> $GITHUB_ENV
 
       - name: Generate appspec.yaml
-        working-directory: ${{ github.workspace }}
         run: |
-          sed "s|TASK_DEFINITION_ARN|$TASK_DEF_ARN|g" appspec-template.yaml > appspec.yaml
+          sed "s|TASK_DEFINITION_ARN|${{ env.TASK_DEF_ARN }}|g" ./appspec-template.yaml > ./appspec.yaml
 
       - name: Trigger CodeDeploy Deployment
         run: |
@@ -77,7 +76,7 @@ jobs:
           --revision "{
             \"revisionType\": \"AppSpecContent\",
             \"appSpecContent\": {
-              \"content\": \"$(cat appspec.yaml | base64 | tr -d '\n')\",
+              \"content\": \"$(cat ./appspec.yaml | base64 | tr -d '\n')\",
               \"sha256\": \"\"
             }
           }"
