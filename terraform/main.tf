@@ -207,6 +207,12 @@ resource "aws_ecs_service" "strapi_service" {
   deployment_controller {
     type = "CODE_DEPLOY"
   }
+  
+  load_balancer {
+  target_group_arn = aws_lb_target_group.blue_tg.arn
+  container_name   = "strapi"
+  container_port   = 1337
+  }
 
   network_configuration {
     subnets          = ["subnet-024126fd1eb33ec08", "subnet-03e27b60efa8df9f0"]
