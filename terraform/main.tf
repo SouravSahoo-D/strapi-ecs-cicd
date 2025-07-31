@@ -276,10 +276,36 @@ resource "aws_iam_role" "codedeploy_role" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "codedeploy_policy" {
-  role       = aws_iam_role.codedeploy_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AWSCodeDeployRoleForECS"
+resource "aws_iam_role_policy" "codedeploy_custom_policy" {
+  name = "CodeDeploy-ECS-Inline-Policy"
+  role = aws_iam_role.codedeploy_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "ecs:DescribeServices",
+          "ecs:UpdateService",
+          "ecs:DescribeTaskDefinition",
+          "elasticloadbalancing:DescribeTargetGroups",
+          "elasticloadbalancing:DescribeListeners",
+          "elasticloadbalancing:ModifyListener",
+          "elasticloadbalancing:DescribeRules",
+          "elasticloadbalancing:ModifyRule",
+          "codedeploy:PutLifecycleEventHookExecutionStatus",
+          "cloudwatch:DescribeAlarms",
+          "sns:Publish",
+          "lambda:InvokeFunction",
+          "lambda:ListFunctions"
+        ],
+        Resource = "*"
+      }
+    ]
+  })
 }
+
 
 # CodeDeploy ECS Deployment Group
 resource "aws_codedeploy_deployment_group" "strapi" {
