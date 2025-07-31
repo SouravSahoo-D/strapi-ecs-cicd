@@ -67,22 +67,24 @@ jobs:
 
       - name: Trigger CodeDeploy Deployment
         run: |
-          cat > deploy-spec.json <<EOF
-          {
-            "applicationName": "strapi-codedeploy-app",
-            "deploymentGroupName": "strapi-deploy-group",
-            "deploymentConfigName": "CodeDeployDefault.ECSCanary10Percent5Minutes",
-            "revision": {
-              "revisionType": "AppSpecContent",
-              "appSpecContent": {
-                "content": "$(base64 ./appspec.yaml | tr -d '\n')",
-                "sha256": ""
+          CONTENT_RAW=$(cat ./appspec.yaml)
+          SHA256=$(echo -n "$CONTENT_RAW" | openssl dgst -sha256 -binary | base64)
+          CONTENT_B64=$(echo -n "$CONTENT_RAW" | base64 | tr -d '\n')
+
+          echo "{
+            \"applicationName\": \"strapi-codedeploy-app\",
+            \"deploymentGroupName\": \"strapi-deploy-group\",
+            \"deploymentConfigName\": \"CodeDeployDefault.ECSCanary10Percent5Minutes\",
+            \"revision\": {
+              \"revisionType\": \"AppSpecContent\",
+              \"appSpecContent\": {
+                \"content\": \"$CONTENT_B64\",
+                \"sha256\": \"$SHA256\"
               }
             },
-            "description": "Blue/Green deploy triggered by GitHub Actions"
-          }
-          EOF
+            \"description\": \"Blue/Green deploy triggered by GitHub Actions\"
+          }" > deploy-spec.json
 
           aws deploy create-deployment \
-          --cli-input-json file://deploy-spec.json \
-          --region $AWS_REGION
+            --cli-input-json file://deploy-spec.json \
+            --region $AWS_REGION
