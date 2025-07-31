@@ -68,7 +68,7 @@ jobs:
       - name: Trigger CodeDeploy Deployment
         run: |
           CONTENT_RAW=$(cat ./appspec.yaml)
-          SHA256=$(echo -n "$CONTENT_RAW" | openssl dgst -sha256 -binary | base64)
+          SHA256=$(echo -n "$CONTENT_RAW" | openssl dgst -sha256 | awk '{print $2}')
           CONTENT_B64=$(echo -n "$CONTENT_RAW" | base64 | tr -d '\n')
 
           echo "{
@@ -84,6 +84,8 @@ jobs:
             },
             \"description\": \"Blue/Green deploy triggered by GitHub Actions\"
           }" > deploy-spec.json
+
+          cat deploy-spec.json
 
           aws deploy create-deployment \
             --cli-input-json file://deploy-spec.json \
