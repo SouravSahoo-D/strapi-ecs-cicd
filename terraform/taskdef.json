@@ -1,0 +1,41 @@
+{
+  "family": "srs-strapi-task",
+  "networkMode": "awsvpc",
+  "executionRoleArn": "arn:aws:iam::607700977843:role/ecs-task-execution-role",
+  "taskRoleArn": "arn:aws:iam::607700977843:role/ecs-task-execution-role",
+  "cpu": "256",
+  "memory": "512",
+  "requiresCompatibilities": ["FARGATE"],
+  "containerDefinitions": [
+    {
+      "name": "strapi",
+      "image": "607700977843.dkr.ecr.us-east-2.amazonaws.com/strapi-app-ecs-pg:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 1337,
+          "hostPort": 1337,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "DATABASE_URL",
+          "value": "postgresql://strapi_user:strapi123@srs-strapi-postgres.cbymg2mgkcu2.us-east-2.rds.amazonaws.com:5432/strapi"
+        },
+        {
+          "name": "NODE_ENV",
+          "value": "production"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/srs-strapi-task",
+          "awslogs-region": "us-east-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

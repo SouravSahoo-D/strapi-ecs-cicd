@@ -50,3 +50,28 @@ jobs:
       - name: Terraform Apply
         run: |
           terraform apply -auto-approve
+
+      - name: Register New Task Definition
+        id: register
+        run: |
+          TASK_DEF=$(aws ecs register-task-definition \
+            --cli-input-json file://taskdef.json \
+            --region $AWS_REGION)
+          echo "$TASK_DEF" > taskdef-response.json
+          TASK_ARN=$(echo "$TASK_DEF" | jq -r '.taskDefinition.taskDefinitionArn')
+          echo "TASK_DEF_ARN=$TASK_ARN" >> $GITHUB_ENV
+
+      - name: Generate appspec.yaml
+        run: |
+          sed "s|TASK_DEFINITION_ARN|${{ env.TASK_DEF_ARN }}|g" ../appspec-template.yaml > ../appspec.yaml
+
+      - name: Trigger CodeDeploy Deployment
+        run: |
+          aws deploy create-deployment \
+            --application-name strapi-codedeploy-app \
+            --deployment-group-name strapi-deploy-group \
+            --deployment-config-name CodeDeployDefault.ECSCanary10Percent5Minutes \
+            --file-exists-behavior OVERWRITE \
+            --appspec-content file://../appspec.yaml \
+            --region $AWS_REGION \
+            --description "Blue/Green deploy triggered by GitHub Actions"

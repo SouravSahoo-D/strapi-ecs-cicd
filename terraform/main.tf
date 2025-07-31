@@ -4,12 +4,11 @@ provider "aws" {
   secret_key = var.aws_secret_key
 }
 
-# Use default VPC
+# Default VPC
 data "aws_vpc" "default" {
   default = true
 }
 
-# Get default subnets in the default VPC
 data "aws_subnets" "default" {
   filter {
     name   = "vpc-id"
@@ -17,7 +16,6 @@ data "aws_subnets" "default" {
   }
 }
 
-# Get availability zones (useful for ALB, ECS Fargate)
 data "aws_availability_zones" "available" {
   state = "available"
 }
@@ -32,8 +30,7 @@ resource "aws_ecs_cluster" "strapi_cluster" {
 }
 
 resource "aws_ecs_cluster_capacity_providers" "strapi_cp_srs" {
-  cluster_name = aws_ecs_cluster.strapi_cluster.name
-
+  cluster_name       = aws_ecs_cluster.strapi_cluster.name
   capacity_providers = ["FARGATE_SPOT"]
 
   default_capacity_provider_strategy {
@@ -42,11 +39,13 @@ resource "aws_ecs_cluster_capacity_providers" "strapi_cp_srs" {
   }
 }
 
+# CloudWatch Logs
 resource "aws_cloudwatch_log_group" "ecs_logs" {
   name              = "/ecs/srs-strapi-task"
   retention_in_days = 7
 }
 
+# ECS Task Definition (placeholder for dynamic updates)
 resource "aws_ecs_task_definition" "strapi_task" {
   family                   = "srs-strapi-task"
   requires_compatibilities = ["FARGATE"]
@@ -55,10 +54,11 @@ resource "aws_ecs_task_definition" "strapi_task" {
   network_mode             = "awsvpc"
   execution_role_arn       = var.ecs_task_execution_role_arn
   task_role_arn            = var.ecs_task_execution_role_arn
+
   container_definitions = jsonencode([
     {
       name      = "strapi"
-      image     =  "607700977843.dkr.ecr.us-east-2.amazonaws.com/strapi-app-ecs-pg:latest"
+      image     = "607700977843.dkr.ecr.us-east-2.amazonaws.com/strapi-app-ecs-pg:latest"
       essential = true
       portMappings = [
         {
@@ -67,53 +67,15 @@ resource "aws_ecs_task_definition" "strapi_task" {
           protocol      = "tcp"
         }
       ],
-      essential = true,
       environment = [
-        {
-          name  = "DATABASE_SSL"
-          value = "true"
-        },
-        {
-          name  = "DATABASE_SSL_REJECT_UNAUTHORIZED"
-          value = "false"
-        },
-        {
-          name  = "JWT_SECRET"
-          value = "VzrvBw2thSR+PZb+bkM7QQ=="
-        },
-        {
-          name  = "DATABASE_CLIENT"
-          value = "postgres"
-        },
-        {
-          name  = "NODE_ENV"
-          value = "production"
-        },
         {
           name  = "DATABASE_URL"
           value = "postgresql://${var.db_username}:${var.db_password}@srs-strapi-postgres.cbymg2mgkcu2.us-east-2.rds.amazonaws.com:5432/${var.db_name}"
         },
         {
-          name  = "APP_KEYS"
-          value = "Gb1T3j+GY6qab7Xodi+FGA==,fOZoR3u6nrHaMCRfOXKxCw==,qu44AzknDItccWhAXPUTbQ==,n6KR+5fNVFD4FcDJFDhdDA=="
-        },
-        {
-          name  = "API_TOKEN_SALT"
-          value = "mGePSZ7j+/TE6IqAuRaOdg=="
-        },
-        {
-          name  = "ADMIN_JWT_SECRET"
-          value = "5jaga5wS6lb8TpQGBjeE6w=="
-        },
-        {
-          name  = "TRANSFER_TOKEN_SALT"
-          value = "6hJTsNusRF6kArOCiUI0aA=="
-        },
-        {
-          name  = "ENCRYPTION_KEY"
-          value = "Ai0T43Qw8f5Rr573LGe4zA=="
-        },
-
+          name  = "NODE_ENV"
+          value = "production"
+        }
       ],
       logConfiguration = {
         logDriver = "awslogs"
@@ -123,16 +85,14 @@ resource "aws_ecs_task_definition" "strapi_task" {
           awslogs-stream-prefix = "ecs"
         }
       }
-
     }
   ])
-
 }
 
-# Security group for ALB and ECS tasks
-resource "aws_security_group" "ecs_sg" {
-  name        = "srs-strapi-ecs-sg"
-  description = "Allow HTTP from anywhere and Postgres traffic within SG"
+# Security Group for ALB
+resource "aws_security_group" "alb_sg" {
+  name        = "srs-strapi-alb-sg"
+  description = "Allow HTTP and HTTPS traffic"
   vpc_id      = data.aws_vpc.default.id
 
   ingress {
@@ -142,18 +102,11 @@ resource "aws_security_group" "ecs_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  ingress {
-    description = "Postgres access"
-    from_port   = 5432
-    to_port     = 5432
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 
   ingress {
-    description = "Allow container port"
-    from_port   = 1337
-    to_port     = 1337
+    description = "Allow HTTPS"
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -164,25 +117,42 @@ resource "aws_security_group" "ecs_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-
 }
 
-# Load Balancer
+# Security Group for ECS tasks
+resource "aws_security_group" "ecs_sg" {
+  name        = "srs-strapi-ecs-sg"
+  description = "Allow ALB to connect on port 1337"
+  vpc_id      = data.aws_vpc.default.id
+
+  ingress {
+    description     = "Allow ALB traffic"
+    from_port       = 1337
+    to_port         = 1337
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb_sg.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# Application Load Balancer
 resource "aws_lb" "alb" {
   name               = "srs-strapi-alb"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.ecs_sg.id]
-  subnets = [
-    "subnet-024126fd1eb33ec08",
-    "subnet-03e27b60efa8df9f0"
-  ]
+  security_groups    = [aws_security_group.alb_sg.id]
+  subnets            = ["subnet-024126fd1eb33ec08", "subnet-03e27b60efa8df9f0"]
 }
 
-# Target group for ECS tasks
-resource "aws_lb_target_group" "tg" {
-  name        = "srs-strapi-tg"
+# Blue & Green Target Groups
+resource "aws_lb_target_group" "blue_tg" {
+  name        = "srs-strapi-blue-tg"
   port        = 1337
   protocol    = "HTTP"
   vpc_id      = data.aws_vpc.default.id
@@ -196,12 +166,26 @@ resource "aws_lb_target_group" "tg" {
     unhealthy_threshold = 2
     matcher             = "200-399"
   }
-  tags = {
-    Name = "StrapiTGsrs"
+}
+
+resource "aws_lb_target_group" "green_tg" {
+  name        = "srs-strapi-green-tg"
+  port        = 1337
+  protocol    = "HTTP"
+  vpc_id      = data.aws_vpc.default.id
+  target_type = "ip"
+  health_check {
+    path                = "/"
+    protocol            = "HTTP"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    matcher             = "200-399"
   }
 }
 
-# Listener to forward HTTP to target group
+# Listener
 resource "aws_lb_listener" "listener" {
   load_balancer_arn = aws_lb.alb.arn
   port              = 80
@@ -209,11 +193,34 @@ resource "aws_lb_listener" "listener" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.tg.arn
+    target_group_arn = aws_lb_target_group.blue_tg.arn
   }
 }
 
-# Create RDS PostgreSQL instance
+# ECS Service (with CodeDeploy controller)
+resource "aws_ecs_service" "strapi_service" {
+  name            = "srs-strapi-service"
+  cluster         = aws_ecs_cluster.strapi_cluster.id
+  task_definition = aws_ecs_task_definition.strapi_task.arn
+  desired_count   = 1
+
+  deployment_controller {
+    type = "CODE_DEPLOY"
+  }
+
+  network_configuration {
+    subnets          = ["subnet-024126fd1eb33ec08", "subnet-03e27b60efa8df9f0"]
+    security_groups  = [aws_security_group.ecs_sg.id]
+    assign_public_ip = true
+  }
+
+  depends_on = [
+    aws_lb_listener.listener,
+    aws_ecs_cluster_capacity_providers.strapi_cp_srs
+  ]
+}
+
+# RDS DB
 resource "aws_db_instance" "postgres" {
   identifier              = "srs-strapi-postgres"
   engine                  = "postgres"
@@ -228,57 +235,74 @@ resource "aws_db_instance" "postgres" {
   skip_final_snapshot     = true
   publicly_accessible     = false
   backup_retention_period = 7
-
-  tags = {
-    Name = "SouravStrapiPostgresDB"
-  }
-}
-## ECS Service
-resource "aws_ecs_service" "strapi_service" {
-  name            = "srs-strapi-service"
-  cluster         = aws_ecs_cluster.strapi_cluster.id
-  task_definition = aws_ecs_task_definition.strapi_task.arn
-  desired_count   = 1
-  
-  capacity_provider_strategy {
-  capacity_provider = "FARGATE_SPOT"
-  weight            = 1
 }
 
-  network_configuration {
-    subnets = [
-      "subnet-024126fd1eb33ec08",
-      "subnet-03e27b60efa8df9f0"
-    ]
-
-    security_groups  = [aws_security_group.ecs_sg.id]
-    assign_public_ip = true
-  }
-
-  load_balancer {
-    target_group_arn = aws_lb_target_group.tg.arn
-    container_name   = "strapi"
-    container_port   = 1337
-  }
-
-  depends_on = [
-    aws_lb_listener.listener,
-    aws_ecs_cluster_capacity_providers.strapi_cp_srs
-  ]
-}
-
-# Create RDS subnet group
+# RDS Subnet Group
 resource "aws_db_subnet_group" "db_subnet_group" {
-  name = "srs-strapi-db-subnet-group"
-  subnet_ids = [
-    "subnet-024126fd1eb33ec08",
-    "subnet-03e27b60efa8df9f0"
-  ]
+  name       = "srs-strapi-db-subnet-group"
+  subnet_ids = ["subnet-024126fd1eb33ec08", "subnet-03e27b60efa8df9f0"]
   tags = {
     Name = "srs-strapi-db-subnet-group"
   }
-
   lifecycle {
     ignore_changes = [subnet_ids]
+  }
+}
+
+# CodeDeploy ECS Application
+resource "aws_codedeploy_app" "strapi" {
+  name             = "strapi-codedeploy-app"
+  compute_platform = "ECS"
+}
+
+resource "aws_iam_role" "codedeploy_role" {
+  name = "strapi-codedeploy-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect = "Allow",
+      Principal = {
+        Service = "codedeploy.amazonaws.com"
+      },
+      Action = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "codedeploy_policy" {
+  role       = aws_iam_role.codedeploy_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSCodeDeployRoleForECS"
+}
+
+# CodeDeploy ECS Deployment Group
+resource "aws_codedeploy_deployment_group" "strapi" {
+  app_name               = aws_codedeploy_app.strapi.name
+  deployment_group_name  = "strapi-deploy-group"
+  service_role_arn       = aws_iam_role.codedeploy_role.arn
+  deployment_config_name = "CodeDeployDefault.ECSCanary10Percent5Minutes"
+
+  ecs_service {
+    cluster_name = aws_ecs_cluster.strapi_cluster.name
+    service_name = aws_ecs_service.strapi_service.name
+  }
+
+  load_balancer_info {
+    target_group_pair_info {
+      prod_traffic_route {
+        listener_arns = [aws_lb_listener.listener.arn]
+      }
+      target_group {
+        name = aws_lb_target_group.blue_tg.name
+      }
+      target_group {
+        name = aws_lb_target_group.green_tg.name
+      }
+    }
+  }
+
+  auto_rollback_configuration {
+    enabled = true
+    events  = ["DEPLOYMENT_FAILURE"]
   }
 }
