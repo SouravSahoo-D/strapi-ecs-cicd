@@ -67,16 +67,22 @@ jobs:
 
       - name: Trigger CodeDeploy Deployment
         run: |
+          cat > deploy-spec.json <<EOF
+          {
+            "applicationName": "strapi-codedeploy-app",
+            "deploymentGroupName": "strapi-deploy-group",
+            "deploymentConfigName": "CodeDeployDefault.ECSCanary10Percent5Minutes",
+            "revision": {
+              "revisionType": "AppSpecContent",
+              "appSpecContent": {
+                "content": "$(base64 ./appspec.yaml | tr -d '\n')",
+                "sha256": ""
+              }
+            },
+            "description": "Blue/Green deploy triggered by GitHub Actions"
+          }
+          EOF
+
           aws deploy create-deployment \
-          --application-name strapi-codedeploy-app \
-          --deployment-group-name strapi-deploy-group \
-          --deployment-config-name CodeDeployDefault.ECSCanary10Percent5Minutes \
-          --region $AWS_REGION \
-          --description "Blue/Green deploy triggered by GitHub Actions" \
-          --revision "{
-            \"revisionType\": \"AppSpecContent\",
-            \"appSpecContent\": {
-              \"content\": \"$(cat ./appspec.yaml | base64 | tr -d '\n')\",
-              \"sha256\": \"\"
-            }
-          }"
+          --cli-input-json file://deploy-spec.json \
+          --region $AWS_REGION
